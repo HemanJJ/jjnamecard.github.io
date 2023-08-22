@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>LINE LIFF Web Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover {
+      background-color: #45a049;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    img {
+      max-width: 300px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+  <script src="https://static.line-scdn.net/liff/edge/versions/2.14.0/sdk.js"></script>
+</head>
+<body>
+  <h1>Welcome to LINE LIFF Web Page</h1>
+
+  <button onclick="shareImage()">Share Image</button>
+
+  <img id="image" src="https://lh3.googleusercontent.com/u/0/drive-viewer/AITFw-wgcy2o_vk2IKWhOAyFjLEsX2Ejd59btE4CnJy6NToHsCNA8C7OokDndx8OLfbEn0ZPyyxs_6Z7RpVUZYlEsR65LLRG_g=w2754-h376" alt="Example Image">
+
+  <script>
+    // Function to share the image using the sharetoggleticker function
+    function shareImage() {
+      const imageElement = document.getElementById('image');
+      const imageUrl = imageElement.getAttribute('src');
+      
+      // Call the sharetoggleticker function with the image URL
+      liff.sendMessages([{
+        type: 'image',
+        originalContentUrl: imageUrl,
+        previewImageUrl: imageUrl
+      }])
+      .then(() => {
+        liff.shareTargetPicker([]);
+      })
+      .catch((error) => {
+        console.error('Failed to share image', error);
+      });
+    }
+
+    // Initialize LIFF SDK
+    liff.init({
+      liffId: '1660947211-e5z12ax6' // Replace with your LIFF ID
+    })
+    .then(() => {
+      // Do something after LIFF initialization
+    })
+    .catch((error) => {
+      console.error('LIFF initialization failed', error);
+    });
+  </script>
+</body>
+</html>

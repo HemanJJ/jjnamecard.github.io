@@ -1,0 +1,247 @@
+# line_bot_QuickReply<html style="color-scheme: light; --liff-base-background-color: #FFFFFF; --liff-base-text-color: #000000; --liff-base-background-rgb-color: 255, 255, 255; --liff-base-text-rgb-color: 0, 0, 0; --liff-light-button-border-color: rgba(0, 0, 0, 0.15); --liff-title-text-color: #111111; --liff-title-background-color: #FFFFFF; --liff-title-button-color: #111111; --liff-icon-color: #111111; --liff-status-bar-color: black; --liff-title-subtext-color: #B7B7B7; --liff-progress-bar-color: #06C755; --liff-progress-background-color: #FFFFFF; --liff-title-button-area-background-color: rgba(255, 255, 255, 0.12); --liff-title-button-area-border-color: rgba(0, 0, 0, 0.15);"><head>
+	<title>ShareTargetPickerAgent</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+	<b>Flex Message 小信差</b>
+	<br>
+	<div id="panel">
+	<div>
+		<label>公開</label>
+		<input id="publish" type="checkbox">
+		<input id="id" type="text" readonly="" disabled="">
+		<button id="copybtn">copy</button>
+	</div>
+	<div>
+		<label>增加分享按鈕</label>
+		<input id="useShareBtn" type="checkbox" disabled="">
+	</div>
+
+	<div>
+		<label>預覽文字：</label>
+		<input id="alt" type="text" placeholder="Flex Message">
+	</div>
+	<div>
+		<label>主體訊息：</label>
+	</div>
+	<div>
+		<textarea id="message" cols="40" rows="5" placeholder="請貼上JSON格式"></textarea>
+	</div>
+	</div>
+	<button id="share">分享</button>
+	<div id="result" style="color:red"></div>
+	<script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+	<script>
+		let shared=false;
+		const result = document.getElementById('result');
+		const panel = document.getElementById('panel');
+		const altText = document.getElementById('alt');
+		const message = document.getElementById('message');
+		const publish = document.getElementById('publish');
+		const useShareBtn = document.getElementById('useShareBtn');
+		const copyBtn = document.getElementById('copybtn');
+		const shareBtn = document.getElementById('share');		
+		let defaultId = makeid();
+		const idText = document.getElementById('id');
+		id.value=defaultId;
+		
+		let defaultmsg;
+		liff.init({liffId: "1660947211-e5z12ax6"})
+		.then(async () => {
+			if (liff.isLoggedIn()) {
+			
+				let urlParams = new URLSearchParams(window.location.search);
+				const params = urlParams.has('liff.state')? new URLSearchParams(urlParams.get('liff.state')) : urlParams;
+				const uid = params.get('id');
+				const edit = params.get('edit');
+				if(uid != null && (edit==null || !edit))
+				{			
+					panel.style.display='none';
+					let res = await fetchAsync({method:"Load",id:uid});
+					res = await res.json();
+					
+					defaultmsg = JSON.parse(res.pat);
+					if (liff.isApiAvailable('shareTargetPicker')) {
+						liff.shareTargetPicker([defaultmsg])
+						.then(()=>
+						{
+							result.innerHTML = "傳送成功";
+							shared = true;
+						}).catch((res)=>{
+							result.innerHTML = "傳送尚未成功:"+JSON.stringify(res);
+						});
+					}
+				}
+				if(uid != null && edit)
+				{
+					shared = true;
+					let res = await fetchAsync({method:"Load",id:uid});
+					res = await res.json();
+					let msg = JSON.parse(res.pat);
+
+					defaultId=uid;
+					idText.value=uid;
+					altText.value = msg.altText;
+					message.value = JSON.stringify(msg.contents[0] || msg.contents);
+				}
+			} else {
+				liff.login({redirectUri:window.location.href});
+			}
+		})
+		.catch(error => {
+		});
+		
+		function setClipboard(value) {
+			let tempInput = document.createElement("input");
+			tempInput.style = "position: absolute; left: -1000px; top: -1000px";
+			tempInput.value = value;
+			document.body.appendChild(tempInput);
+			tempInput.select();
+			document.execCommand("copy");
+			document.body.removeChild(tempInput);
+		}
+
+		copyBtn.addEventListener('click',function(){
+			setClipboard('https://illuminechen.github.io/FlexMessageSender/?id='+idText.value+'&edit=1');
+		});
+
+		message.addEventListener('change',function(){
+			if(shared)
+			{
+				defaultId = makeid();
+				id.value=defaultId;
+				shared = false;
+			}
+		});
+		
+		publish.addEventListener('change',function(){
+			useShareBtn.disabled = !publish.checked;
+			id.disabled = !publish.checked;
+			if(!publish.checked)
+				useShareBtn.checked=false;
+		});
+		
+		shareBtn.addEventListener('click',function(){
+			if(defaultmsg)
+			{
+				liff.shareTargetPicker([defaultmsg])
+				.then(()=>
+				{
+					result.innerHTML = "傳送成功";
+					shared = true;
+				}).catch((res)=>{
+					result.innerHTML = "傳送尚未成功:"+JSON.stringify(res);
+				});
+				return;
+			}
+		
+			result.innerHTML="";
+			if(altText.value =="")
+			{
+				result.innerHTML = "請輸入替代文字";
+				return;
+			}			
+			let msg = "";
+			try
+			{
+				msg = getMessage();
+				if(publish)
+				{
+					fetchAsync({method:"Save",id:defaultId,desc:altText.value,pat:JSON.stringify(msg)});
+				}
+			}
+			catch(ex)
+			{
+				result.innerHTML = "訊息格式不正確:"+JSON.stringify(ex);
+			}
+			if (liff.isApiAvailable('shareTargetPicker')) {
+				if(msg != "")
+				{
+					liff.shareTargetPicker([msg])
+					.then(()=>
+					{
+						result.innerHTML = "傳送成功";
+						shared = true;
+					}).catch((res)=>{
+						result.innerHTML = "傳送尚未成功:"+JSON.stringify(res);
+					});
+				}							
+			}
+		});			
+		
+		const getMessage = ()=>{
+			let msg = JSON.parse(message.value);
+			if(useShareBtn.checked)
+			{
+				let share_btn = {
+					"type": "box",
+					"layout": "baseline",
+					"contents": [
+					{
+						"type": "icon",
+						"url": "https://cdn-icons-png.flaticon.com/512/1828/1828954.png",
+						"size": "xxl"
+					}],
+					"action": {
+					  "type": "uri",
+					  "label": "action",
+					  "uri": 'https://illuminechen.github.io/FlexMessageSender/?id='+idText.value+"&openExternalBrowser=1"
+					},
+					"justifyContent": "center"
+				};
+				
+				if(msg.footer == null)
+				{
+					msg.footer = {type:'box',layout:'vertical',contents:[]};
+				}
+				
+				if(msg.footer.layout == 'vertical')
+				{
+					msg.footer.contents.push(share_btn);
+				}			
+				else 
+				{
+					let temp = footer;
+					msg.footer = {type:'box',layout:'vertical',contents:[]};
+					msg.footer.contents.push(temp);
+					msg.footer.contents.push(share_btn);
+				}
+			}
+			
+			return {
+			  "type": "flex",
+			  "altText": altText.value,
+			  "contents": msg
+			};
+		}
+				
+		
+		function makeid() {
+		  var text = "";
+		  var possible = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";//filtered
+
+		  for (var i = 0; i < 5; i++)
+			text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+		  return text;
+		}
+		
+		function fetchAsync(payload) {
+		  let url = 'https://script.google.com/macros/s/AKfycbySaGypnnfhIpguX0gN1Z9FHSyjwIK5XhA0HWhvmZsuMODHwlwN3ijKfa-Keitc8H2COw/exec';
+		  return fetch(url, {
+			headers: {
+			  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',            
+			}, 
+			method: "POST", 
+			body: JSON.stringify(payload)
+		  });
+		}
+		
+		
+
+	</script><script src="https://static.line-scdn.net/liff/edge/2/non-ios-extensions_2_22_0.js" type="text/javascript"></script>
+
+
+<remove-web-limits-iqxin id="rwl-iqxin" class="rwl-exempt" style="position: fixed; top: 0px; left: 0px;"><qxinbutton type="qxinbutton" id="rwl-setbtn"> set </qxinbutton> <lalala style="cursor:move; font-size:12px;">限制解除</lalala> <input type="checkbox" name="" id="black_node"><style type="text/css">#rwl-iqxin{position:fixed;transform:translate(-95%,0);width:85px;height:25px;font-size:12px;font-weight: 500;font-family:Verdana, Arial, '宋体';color:#fff;background:#333;z-index:2147483647;margin: 0;opacity:0.05;transition:0.3s;overflow:hidden;user-select:none;text-align:center;white-space:nowrap;line-height:25px;padding:0 16px;border:1px solid #ccc;border-width:1px 1px 1px 0;border-bottom-right-radius:5px;box-sizing: content-box;}#rwl-iqxin input{margin: 0;padding: 0;vertical-align:middle;-webkit-appearance:checkbox !important;-moz-appearance:checkbox;position: static;clip: auto;opacity: 1;cursor: pointer;}#rwl-iqxin.rwl-active-iqxin{left: 0px;transform:translate(0,0);opacity: 0.9;height: 32px;line-height: 32px}#rwl-iqxin label{margin:0;padding:0;font-weight:500;}#rwl-iqxin #rwl-setbtn{margin: 0 4px 0 0;padding: 0 0 0 4px;border: none;border-radius: 2px;cursor: pointer;background: #fff;color: #000;} </style></remove-web-limits-iqxin></body></html>

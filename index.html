@@ -53,6 +53,26 @@
             text-decoration: none;
             display: block;
         }
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #ff6347; /* Tomato color */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .user-info {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .user-info img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
     </style>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
@@ -68,25 +88,84 @@
             <button type="submit" class="login-btn">登入</button>
         </form>
         <a href="#" id="lineLogin" class="line-btn">LINE Login</a>
+        <button id="lineLogout" class="logout-btn" style="display: none;">登出</button>
+        <div id="userInfo" class="user-info" style="display: none;">
+            <img id="userPicture" src="" alt="User Profile Picture">
+            <p id="userName"></p>
+        </div>
     </div>
 
     <script>
         async function initializeLiff() {
             try {
                 await liff.init({ liffId: '1660947211' });
-                
+                checkLoginStatus();
+
                 document.getElementById('lineLogin').onclick = async (e) => {
                     e.preventDefault();
                     if (!liff.isLoggedIn()) {
                         liff.login();
                     }
                 };
+
+                document.getElementById('lineLogout').onclick = async () => {
+                    if (liff.isLoggedIn()) {
+                        liff.logout();
+                        // 登出後可以重新載入頁面或執行其他操作
+                        window.location.reload();
+                    }
+                };
+
             } catch (err) {
                 console.error('LIFF initialization failed', err);
+                alert('LINE 登入初始化失敗，請稍後再試。');
+            }
+        }
+
+        async function checkLoginStatus() {
+            if (liff.isLoggedIn()) {
+                // 已登入，顯示登出按鈕並獲取使用者資訊
+                document.getElementById('lineLogin').style.display = 'none';
+                document.getElementById('lineLogout').style.display = 'block';
+                document.getElementById('userInfo').style.display = 'block';
+                await getUserInfo();
+            } else {
+                // 未登入，顯示登入按鈕並隱藏登出按鈕和使用者資訊
+                document.getElementById('lineLogin').style.display = 'block';
+                document.getElementById('lineLogout').style.display = 'none';
+                document.getElementById('userInfo').style.display = 'none';
+            }
+        }
+
+        async function getUserInfo() {
+            try {
+                const profile = await liff.getProfile();
+                console.log('User Profile:', profile);
+                document.getElementById('userName').textContent = profile.displayName;
+                document.getElementById('userPicture').src = profile.pictureUrl;
+
+                // (可選) 獲取 ID token
+                const idToken = await liff.getIDToken();
+                if (idToken) {
+                    console.log('ID Token:', idToken);
+                    // 在這裡您可以將 ID token 發送到您的後端伺服器進行驗證
+                }
+
+                // (可選) 獲取 access token (請注意使用情境與權限)
+                // const accessToken = await liff.getAccessToken();
+                // if (accessToken) {
+                //     console.log('Access Token:', accessToken);
+                //     // 在這裡您可以使用 access token 呼叫 LINE API
+                // }
+
+            } catch (err) {
+                console.error('獲取使用者資訊失敗', err);
+                alert('無法獲取您的 LINE 個人資料，請稍後再試。');
+                // 即使獲取使用者資訊失敗，也可能已登入，所以不強制登出
             }
         }
 
         initializeLiff();
     </script>
 </body>
-</html> 
+</html>
